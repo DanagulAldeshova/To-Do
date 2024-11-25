@@ -1,32 +1,36 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'task.dart'; // Task моделін қосу
+import 'package:shared_preferences/shared_preferences.dart'; // SharedPreferences кітапханасын қосу (мәліметтерді локалды сақтау үшін).
+import 'task.dart'; // Task моделін қосу.
 
+// TaskScreen негізгі экранының күйі сақталатын StatefulWidget класс.
 class TaskScreen extends StatefulWidget {
   @override
   _TaskScreenState createState() => _TaskScreenState();
 }
 
+// TaskScreen экранының күйін сақтау және басқару класы.
 class _TaskScreenState extends State<TaskScreen> {
-  List<Task> _tasks = [];
-  bool _showCompleted = false;
+  List<Task> _tasks = []; // Тапсырмалардың тізімі.
+  bool _showCompleted = false; // Тапсырмалардың орындалғанын көрсету/жасыру.
 
-  final TextEditingController _titleController = TextEditingController();
-  final TextEditingController _descriptionController = TextEditingController();
-  DateTime? _selectedDate;
+  final TextEditingController _titleController = TextEditingController(); // Атау өрісінің басқарушысы.
+  final TextEditingController _descriptionController = TextEditingController(); // Сипаттама өрісінің басқарушысы.
+  DateTime? _selectedDate; // Таңдалған күн.
 
   @override
   void initState() {
     super.initState();
-    _initializeTasks();
+    _tapstyrmalardyJukteu(); // Тапсырмаларды жүктеу.
   }
 
-  Future<void> _initializeTasks() async {
-    final prefs = await SharedPreferences.getInstance();
-    final List<String>? storedTasks = prefs.getStringList('tasks');
+  // Тапсырмаларды жүктеу немесе алдын ала қосу.
+  Future<void> _tapstyrmalardyJukteu() async {
+    final prefs = await SharedPreferences.getInstance(); // SharedPreferences инстансын алу.
+    final List<String>? storedTasks = prefs.getStringList('tasks'); // Локалды сақталған тапсырмалар.
 
     if (storedTasks != null && storedTasks.isNotEmpty) {
       setState(() {
+        // Сақталған тапсырмаларды қайта құру.
         _tasks = storedTasks.map((taskString) {
           final Map<String, dynamic> map = taskString
               .split(';')
@@ -41,6 +45,7 @@ class _TaskScreenState extends State<TaskScreen> {
       });
     } else {
       setState(() {
+        // Егер сақталған мәліметтер болмаса, алдын ала дайын тапсырмалар қосылады.
         _tasks = [
           Task(
             title: "1. UI дизайн жасау",
@@ -74,35 +79,40 @@ class _TaskScreenState extends State<TaskScreen> {
           ),
         ];
       });
-      _saveTasks();
+      _tapstyrmalardySaqtau(); // Алдын ала дайын тапсырмаларды локалды сақтау.
     }
   }
 
-  Future<void> _saveTasks() async {
-    final prefs = await SharedPreferences.getInstance();
+  // Тапсырмаларды локалды сақтау.
+  Future<void> _tapstyrmalardySaqtau() async {
+    final prefs = await SharedPreferences.getInstance(); // SharedPreferences инстансын алу.
     final List<String> taskStrings = _tasks
         .map((task) => task.toMap().entries.map((e) => '${e.key}:${e.value}').join(';'))
-        .toList();
-    await prefs.setStringList('tasks', taskStrings);
+        .toList(); // Тапсырмаларды сақтау форматына түрлендіру.
+    await prefs.setStringList('tasks', taskStrings); // Тапсырмаларды сақтау.
   }
 
-  Future<void> _addOrEditTask({int? index}) async {
-    final isEdit = index != null;
+  // Тапсырма қосу немесе өңдеу.
+  Future<void> _tapstyrmaKosuNemeseOndeu({int? index}) async {
+    final isEdit = index != null; // Редакциялау режимін тексеру.
     if (isEdit) {
+      // Егер редакциялау режимінде болса, өрістерге бұрынғы мәліметтер толтырылады.
       _titleController.text = _tasks[index].title;
       _descriptionController.text = _tasks[index].description;
       _selectedDate = DateTime.parse(_tasks[index].deadline);
     } else {
+      // Егер жаңа тапсырма қосу режимінде болса, өрістер тазаланады.
       _titleController.clear();
       _descriptionController.clear();
       _selectedDate = null;
     }
 
+    // Диалогтық терезе көрсету.
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(16), // Дөңгеленген шеттер.
         ),
         title: Text(
           isEdit ? 'Тапсырманы өңдеу' : 'Тапсырма қосу',
@@ -112,7 +122,7 @@ class _TaskScreenState extends State<TaskScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
-              controller: _titleController,
+              controller: _titleController, // Атау енгізу өрісі.
               decoration: InputDecoration(
                 labelText: 'Атау',
                 border: OutlineInputBorder(),
@@ -120,7 +130,7 @@ class _TaskScreenState extends State<TaskScreen> {
             ),
             SizedBox(height: 10),
             TextField(
-              controller: _descriptionController,
+              controller: _descriptionController, // Сипаттама енгізу өрісі.
               decoration: InputDecoration(
                 labelText: 'Сипаттама',
                 border: OutlineInputBorder(),
@@ -132,22 +142,21 @@ class _TaskScreenState extends State<TaskScreen> {
                 Expanded(
                   child: Text(
                     _selectedDate == null
-                        ? 'Аяқталу уақыты таңдалмаған'
-                        : 'Күні: ${_selectedDate!.toIso8601String().split('T').first}',
+                        ? 'Аяқталу уақыты таңдалмаған' // Егер күн таңдалмаса.
+                        : 'Күні: ${_selectedDate!.toIso8601String().split('T').first}', // Таңдалған күн.
                   ),
                 ),
                 OutlinedButton(
                   onPressed: () async {
                     DateTime? picked = await showDatePicker(
-                      context: context,
+                      context: context, // Күн таңдау виджеті.
                       initialDate: DateTime.now(),
                       firstDate: DateTime(2000),
                       lastDate: DateTime(2100),
-
-                        );
+                    );
                     if (picked != null) {
                       setState(() {
-                        _selectedDate = picked;
+                        _selectedDate = picked; // Таңдалған күнді сақтау.
                       });
                     }
                   },
@@ -158,23 +167,20 @@ class _TaskScreenState extends State<TaskScreen> {
           ],
         ),
         actions: [
+          // Болдырмау батырмасы.
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: Text(
               'Болдырмау',
-              style: TextStyle(
-                color: Colors.white, // Мәтін түсі ақ
-                fontWeight: FontWeight.bold, // Қалың мәтін
-              ),
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
             ),
             style: TextButton.styleFrom(
-              backgroundColor: Colors.red, // Фон түсі (мысалы, қызыл)
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12), // Дөңгеленген шеттер
-              ),
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10), // Қалауыңызша батырма өлшемі
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             ),
           ),
+          // Қосу/Сақтау батырмасы.
           ElevatedButton(
             onPressed: () {
               if (_titleController.text.isNotEmpty &&
@@ -196,8 +202,8 @@ class _TaskScreenState extends State<TaskScreen> {
                     ));
                   }
                 });
-                _saveTasks();
-                Navigator.of(context).pop();
+                _tapstyrmalardySaqtau(); // Өзгерістерді сақтау.
+                Navigator.of(context).pop(); // Диалогты жабу.
               }
             },
             child: Text(isEdit ? 'Сақтау' : 'Қосу'),
@@ -207,11 +213,12 @@ class _TaskScreenState extends State<TaskScreen> {
     );
   }
 
-  Future<void> _toggleTaskCompletion(int index) async {
+  // Тапсырманың орындалу күйін өзгерту.
+  Future<void> _tapstyrmanyOryndauKuinOzger(int index) async {
     setState(() {
       _tasks[index].isCompleted = !_tasks[index].isCompleted;
     });
-    _saveTasks();
+    _tapstyrmalardySaqtau(); // Өзгерістерді сақтау.
   }
 
   @override
@@ -219,22 +226,22 @@ class _TaskScreenState extends State<TaskScreen> {
     final filteredTasks = _tasks.where((task) => task.isCompleted == _showCompleted).toList();
 
     return Scaffold(
-      backgroundColor: Colors.lightBlue.shade50,
+      backgroundColor: Colors.lightBlue.shade50, // Экранның фоны.
       appBar: AppBar(
         title: Row(
           children: [
             Image.network(
               'https://soft-ok.net/uploads/posts/2015-08/1440669018_todo-cloud-3-0-5.png',
-              width: 40,  // Adjust size
-              height: 40, // Adjust size
+              width: 40, // Логотип өлшемдері.
+              height: 40,
             ),
-            Text('Тапсырмалар тізімі'),
+            Text('Тапсырмалар тізімі'), // Қолданба тақырыбы.
             SizedBox(width: 10),
             Switch(
-              value: _showCompleted,
+              value: _showCompleted, // Орындалған тапсырмаларды көрсету батырмасы.
               onChanged: (value) {
                 setState(() {
-                  _showCompleted = value;
+                  _showCompleted = value; // Көрсету күйін өзгерту.
                 });
               },
               activeColor: Colors.green,
@@ -247,7 +254,7 @@ class _TaskScreenState extends State<TaskScreen> {
         children: [
           Expanded(
             child: ListView.builder(
-              itemCount: filteredTasks.length,
+              itemCount: filteredTasks.length, // Көрсетуге арналған тапсырмалар саны.
               itemBuilder: (context, index) {
                 final task = filteredTasks[index];
                 final taskIndex = _tasks.indexOf(task);
@@ -259,7 +266,7 @@ class _TaskScreenState extends State<TaskScreen> {
                       task.title,
                       style: TextStyle(
                         decoration: task.isCompleted
-                            ? TextDecoration.lineThrough
+                            ? TextDecoration.lineThrough // Егер тапсырма орындалған болса, сызық сызу.
                             : TextDecoration.none,
                         fontWeight: FontWeight.bold,
                       ),
@@ -268,25 +275,28 @@ class _TaskScreenState extends State<TaskScreen> {
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        // Редакциялау батырмасы.
                         IconButton(
                           icon: Icon(Icons.edit, color: Colors.blue),
-                          onPressed: () => _addOrEditTask(index: taskIndex),
+                          onPressed: () => _tapstyrmaKosuNemeseOndeu(index: taskIndex),
                         ),
+                        // Тапсырма орындалу күйін өзгерту батырмасы.
                         IconButton(
                           icon: Icon(
                             task.isCompleted
                                 ? Icons.check_box
                                 : Icons.check_box_outline_blank,
                           ),
-                          onPressed: () => _toggleTaskCompletion(taskIndex),
+                          onPressed: () => _tapstyrmanyOryndauKuinOzger(taskIndex),
                         ),
+                        // Тапсырманы жою батырмасы.
                         IconButton(
                           icon: Icon(Icons.delete, color: Colors.red),
                           onPressed: () {
                             setState(() {
-                              _tasks.removeAt(taskIndex);
+                              _tasks.removeAt(taskIndex); // Тапсырманы тізімнен жою.
                             });
-                            _saveTasks();
+                            _tapstyrmalardySaqtau(); // Өзгерістерді сақтау.
                           },
                         ),
                       ],
@@ -298,10 +308,12 @@ class _TaskScreenState extends State<TaskScreen> {
           ),
         ],
       ),
+      // Тапсырма қосу батырмасы.
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _addOrEditTask(),
+        onPressed: () => _tapstyrmaKosuNemeseOndeu(),
         child: Icon(Icons.add),
       ),
     );
   }
 }
+
